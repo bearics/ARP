@@ -66,7 +66,8 @@ int main(int argc, char *argv[])
     /* ether, arp header */
 
     struct ether_header *eth;
-    struct arphdr *arp;
+    struct ether_arp *arp;
+    struct in_addr *attacker_ip;                // need to update
 
     /* Make packet to send ARP to Target */
 
@@ -74,7 +75,28 @@ int main(int argc, char *argv[])
     ether_aton_r("FF:FF:FF:FF:FF:FF", (struct ether_addr *)sendBuf);
     memcpy(eth->ether_dhost, sendBuf, ETHER_ADDR_LEN );         // dest.MAC = ffffffff
     printf("eth.dmac: %s\n",ether_ntoa(((ether_addr*)eth->ether_dhost)));
+    eth->ether_type=htons(ETHERTYPE_ARP);
 
+    arp=(struct ether_arp *)(send_pkt+ETH_HLEN);
+    arp->arp_hrd = htons(ARPHRD_ETHER);
+    arp->arp_pro = htons(ETHERTYPE_IP);
+    arp->arp_hln = ETHER_ADDR_LEN;
+    arp->arp_pln = sizeof(struct in_addr);
+    arp->arp_op  = htons(ARPOP_REQUEST);
+    ether_aton_r(senderMAC, (struct ether_addr *)arp->arp_sha);
+    for(int i=0;i<6;i++)    printf("%02x ", *(arp->arp_sha+i));
+    printf("\n");
+    inet_pton(AF_INET, "192.168.5.129", arp->arp_spa);
+    //memcpy(arp->arp_spa, senderIP,sizeof(struct in_addr));       //inet_pton(AF_INET, "192.168.1.1", arp->arp_spa);
+    for(int i=0;i<4;i++)    printf("%x ", *(arp->arp_spa+i));
+    printf("\n");
+    ether_aton_r("00:00:00:00:00:00", (struct ether_addr *)arp->arp_tha);
+    for(int i=0;i<6;i++)    printf("%02x ", *(arp->arp_tha+i));    printf("\n");
+    inet_pton(AF_INET, argv[2], arp->arp_tpa);
+    for(int i=0;i<4;i++)    printf("%d ", *(arp->arp_tpa+i));    printf("\n");
+
+    if(pcap_sendpacket(handle, send_pkt, sizeof(send_pkt)) == -1)
+        printf("error\n");
 
 
     /* Define the device */
@@ -105,6 +127,10 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Couldn't install filter %s: %s\n", filter_exp, pcap_geterr(handle));
         return(2);
     }
+
+
+
+
     while((res = pcap_next_ex( handle, &header, &pkt)) >= 0){
 
         if(res == 0)
