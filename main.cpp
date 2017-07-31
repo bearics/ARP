@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
     arp->arp_op  = htons(ARPOP_REPLY);
     ether_aton_r(senderMAC, (struct ether_addr *)arp->arp_sha);
 
-    inet_pton(AF_INET, "192.168.5.2", arp->arp_spa);
+    inet_pton(AF_INET, argv[3], arp->arp_spa);
     //memcpy(arp->arp_spa, senderIP,sizeof(struct in_addr));       //inet_pton(AF_INET, "192.168.1.1", arp->arp_spa);
     ether_aton_r(targetMAC, (struct ether_addr *)arp->arp_tha);
     inet_pton(AF_INET, argv[2], arp->arp_tpa);
