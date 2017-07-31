@@ -35,11 +35,11 @@ int main(int argc, char *argv[])
 
     struct ether_header *eth;
     struct ether_arp *arp;
-    struct ether_addr *targetMAC;
 
     /* Sender info */
     char senderIP[16];
     char senderMAC[18];
+    char targetMAC[18];
 
     /* Find Mac Address and IP */
 
@@ -136,13 +136,14 @@ int main(int argc, char *argv[])
         arp=(struct ether_arp *)(pkt+ETH_HLEN);
         /* Check ARP */
         if(ntohs(eth->ether_type) == ETHERTYPE_ARP ){
-            memcpy(&targetMAC, arp->arp_sha, ETH_ALEN);
-            // for(int i=0;i<6;i++) printf("%02x ", *(targetMAC+i));
+            sprintf(targetMAC, "%s", ether_ntoa(((ether_addr*)arp->arp_sha)));
+            printf("We received");
             break;
         }
 
     }
-    printf("ddddd");
+
+
 
     return 0;
 }
