@@ -24,7 +24,8 @@ int main(int argc, char *argv[])
 
     int res;
     const u_char *pkt;
-    u_char send_pkt[100];
+    u_char send_pkt[100];   /* packet for sender*/
+    u_char sendBuf[18];
     struct tm *ltime;
     char timestr[16];
     time_t local_tv_sec;
@@ -62,9 +63,17 @@ int main(int argc, char *argv[])
     printf("my ip : %s", senderIP);
     printf("my mac : %s", senderMAC);
 
+    /* ether, arp header */
 
+    struct ether_header *eth;
+    struct arphdr *arp;
 
+    /* Make packet to send ARP to Target */
 
+    eth=(struct ether_header *)send_pkt;
+    ether_aton_r("FF:FF:FF:FF:FF:FF", (struct ether_addr *)sendBuf);
+    memcpy(eth->ether_dhost, sendBuf, ETHER_ADDR_LEN );         // dest.MAC = ffffffff
+    printf("eth.dmac: %s\n",ether_ntoa(((ether_addr*)eth->ether_dhost)));
 
 
 
